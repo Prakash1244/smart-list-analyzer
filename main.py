@@ -1,5 +1,5 @@
 #-------function---------
-def freqency_count(arr):
+def frequency_count(arr):
   if len(arr)==0:
     return {}
   m={}
@@ -123,7 +123,7 @@ if __name__ == "__main__":
       value=input("Choose an option: ")
       if value=="i":
         arr=list(map(int, input("Enter number separated by space: ").split()))
-        frequency=freqency_count(arr)
+        frequency=frequency_count(arr)
         print(f"Frequency:")
 
         for key, val in frequency.items():
