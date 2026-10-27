@@ -2,3 +2,4 @@ __pycache__/
 .env
 ip.py
 s.py
+.venv/
