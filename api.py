@@ -2,8 +2,18 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from database import analyses_collection
 from services import *
+import boto3
+from fastapi import UploadFile, File
+import uuid
 
 app = FastAPI()
+
+s3_client = boto3.client(
+    "s3",
+    region_name="ap-south-1"
+)
+
+BUCKET_NAME = "smart-list-reports-unique-number"
 
 class NumberValidate(BaseModel):
     Numbers: list[int]
@@ -59,3 +69,22 @@ async def delete_item(analyse_id: str):
         'document': 'deleted successfully',
         '_id': analyse_id
     }
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    try:
+        file_key = f"{uuid.uuid4()}_{file.filename}"
+        s3_client.upload_fileobj(
+            file.file,
+            BUCKET_NAME,
+            file_key
+        )
+
+        return {
+            "message": "File uploaded successfully",
+            "filename": file.filename,
+            "s3_key": file_key
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
