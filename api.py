@@ -7,6 +7,7 @@ from fastapi import UploadFile, File
 import uuid
 from fastapi.responses import StreamingResponse
 from io import BytesIO
+from botocore.exceptions import ClientError
 
 app = FastAPI()
 
@@ -117,5 +118,37 @@ async def download_file(file_key: str):
             status_code=404,
             detail="File not found"
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/delete-file/{file_key}")
+async def delete_file(file_key: str):
+    try:
+        s3_client.head_object(
+            Bucket=BUCKET_NAME,
+            Key=file_key
+        )
+
+        s3_client.delete_object(
+            Bucket=BUCKET_NAME,
+            Key=file_key
+        )
+
+        return {
+            "message": "File deleted successfully",
+            "s3_key": file_key
+        }
+
+    except s3_client.exceptions.ClientError as e:
+        error_code = e.response["Error"]["Code"]
+
+        if error_code in ("404", "NoSuchKey", "NotFound"):
+            raise HTTPException(
+                status_code=404,
+                detail="File not found"
+            )
+
+        raise HTTPException(status_code=500, detail=str(e))
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
