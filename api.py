@@ -139,7 +139,7 @@ async def delete_file(file_key: str):
             "s3_key": file_key
         }
 
-    except s3_client.exceptions.ClientError as e:
+    except ClientError as e:
         error_code = e.response["Error"]["Code"]
 
         if error_code in ("404", "NoSuchKey", "NotFound"):
@@ -149,6 +149,29 @@ async def delete_file(file_key: str):
             )
 
         raise HTTPException(status_code=500, detail=str(e))
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/list-files")
+async def list_files():
+    try:
+        response = s3_client.list_objects_v2(
+            Bucket=BUCKET_NAME
+        )
+
+        files = [
+            {
+                "filename": obj["Key"],
+                "size": obj["Size"]
+            }
+            for obj in response.get("Contents", [])
+        ]
+
+        return {
+            "count": len(files),
+            "files": files
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
