@@ -5,6 +5,8 @@ from services import *
 import boto3
 from fastapi import UploadFile, File
 import uuid
+from fastapi.responses import StreamingResponse
+from io import BytesIO
 
 app = FastAPI()
 
@@ -86,5 +88,34 @@ async def upload_file(file: UploadFile = File(...)):
             "s3_key": file_key
         }
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/download/{file_key}")
+async def download_file(file_key: str):
+    try:
+        response = s3_client.get_object(
+            Bucket=BUCKET_NAME,
+            Key=file_key
+        )
+
+        file_content = response["Body"].read()
+
+        return StreamingResponse(
+            BytesIO(file_content),
+            media_type=response.get(
+                "ContentType",
+                "application/octet-stream"
+            ),
+            headers={
+                "Content-Disposition": f'attachment; filename="{file_key}"'
+            }
+        )
+
+    except s3_client.exceptions.NoSuchKey:
+        raise HTTPException(
+            status_code=404,
+            detail="File not found"
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
